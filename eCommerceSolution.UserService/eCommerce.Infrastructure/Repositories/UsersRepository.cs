@@ -15,27 +15,20 @@ public class UsersRepository : IUsersRepository
         _dbContext = dbContext;
     }
 
+    const string GetUserQuery = "SELECT * FROM public.\"Users\" WHERE \"Email\" = @Email AND \"Password\" = @Password;";
+    const string AddUserQuery = "INSERT INTO public.\"Users\"(\"UserID\", \"Email\", \"Name\", \"Gender\", \"Password\") VALUES(@UserID, @Email, @Name, @Gender, @Password)";
+
     public async Task<ApplicationUser?> AddUser(ApplicationUser user)
     {
         // Generate a new unique user id for the user
         user.UserId = Guid.NewGuid();
-
-        // SQL Query per dapper
-        string query = "INSERT INTO public.\"Users\"(\"UserID\", \"Email\", \"Name\", \"Gender\", \"Password\") VALUES(@UserID, @Email, @Name, @Gender, @Password)";
-        var rowCount = await _dbContext.DbConnection.ExecuteAsync(query, user);
-        
+        var rowCount = await _dbContext.DbConnection.ExecuteAsync(AddUserQuery, user);
         return rowCount > 0 ? user : null;
     }
 
     public async Task<ApplicationUser?> GetUser(string? email, string? password)
     {
-        return new()
-        {
-            UserId = Guid.NewGuid(),
-            Email = email,
-            Password = password,
-            Name = "Dummy person name",
-            Gender = GenderOptions.Male.ToString()
-        };
+        var parameters = new { Email = email, Password = password };
+        return await _dbContext.DbConnection.QueryFirstOrDefaultAsync<ApplicationUser>(GetUserQuery, parameters);
     }
 }
